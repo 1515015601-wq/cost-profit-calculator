@@ -1,0 +1,402 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#0B1F2A">
+  <meta name="description" content="成本利润计算器网页版：成本、退货、仅退款、净利润、方案对比、敏感度与历史记录。">
+  <title>成本利润计算器 · 网页版</title>
+  <script>
+    try {
+      var savedTheme = localStorage.getItem("costcalc.mobile.theme.v1");
+      if (savedTheme === "dark" || savedTheme === "light") document.documentElement.dataset.theme = savedTheme;
+    } catch (e) {}
+  </script>
+  <link rel="manifest" href="./manifest.webmanifest">
+  <link rel="icon" href="./icon-192.png">
+  <link rel="apple-touch-icon" href="./icon-192.png">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+  <svg class="svg-sprite" aria-hidden="true">
+    <symbol id="i-calc" viewBox="0 0 24 24"><rect x="5" y="3" width="14" height="18" rx="3"/><path d="M8 7h8M8 11h2M12 11h2M16 11h.01M8 15h2M12 15h2M16 15h.01M8 19h8"/></symbol>
+    <symbol id="i-compare" viewBox="0 0 24 24"><path d="M7 7h11l-3-3M17 17H6l3 3M18 4v6M6 20v-6"/></symbol>
+    <symbol id="i-chart" viewBox="0 0 24 24"><path d="M4 19V5M4 19h16"/><rect x="7" y="11" width="3" height="5" rx="1"/><rect x="12" y="8" width="3" height="8" rx="1"/><rect x="17" y="5" width="3" height="11" rx="1"/></symbol>
+    <symbol id="i-history" viewBox="0 0 24 24"><path d="M4 12a8 8 0 1 0 2.3-5.7L4 8.6M4 4v4.6h4.6M12 8v4l3 2"/></symbol>
+    <symbol id="i-save" viewBox="0 0 24 24"><path d="M6 4h10l4 4v12H6z"/><path d="M9 4v6h7V4M9 20v-6h6v6"/></symbol>
+    <symbol id="i-share" viewBox="0 0 24 24"><path d="M12 16V4M8 8l4-4 4 4M5 13v6h14v-6"/></symbol>
+    <symbol id="i-menu" viewBox="0 0 24 24"><circle cx="5" cy="12" r="1.4"/><circle cx="12" cy="12" r="1.4"/><circle cx="19" cy="12" r="1.4"/></symbol>
+    <symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="6"/><path d="M16 16l4 4"/></symbol>
+    <symbol id="i-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></symbol>
+    <symbol id="i-moon" viewBox="0 0 24 24"><path d="M20 15.2A8.2 8.2 0 0 1 8.8 4 8.5 8.5 0 1 0 20 15.2z"/></symbol>
+    <symbol id="i-reset" viewBox="0 0 24 24"><path d="M4 12a8 8 0 1 0 2.3-5.7L4 8.6M4 4v4.6h4.6"/></symbol>
+    <symbol id="i-download" viewBox="0 0 24 24"><path d="M12 4v11M7 10l5 5 5-5M5 20h14"/></symbol>
+    <symbol id="i-upload" viewBox="0 0 24 24"><path d="M12 20V9M7 14l5-5 5 5M5 4h14"/></symbol>
+    <symbol id="i-trash" viewBox="0 0 24 24"><path d="M4 7h16M9 7V4h6v3M6 7l1 14h10l1-14M10 11v6M14 11v6"/></symbol>
+    <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+    <symbol id="i-arrow" viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></symbol>
+    <symbol id="i-phone" viewBox="0 0 24 24"><rect x="7" y="2" width="10" height="20" rx="2.5"/><path d="M10.5 18.5h3"/></symbol>
+  </svg>
+
+  <div id="app" class="app">
+    <header class="app-header">
+      <a class="brand" href="#calculator" data-view="calculator" aria-label="回到计算器">
+        <span class="brand-mark">¥</span>
+        <span class="brand-copy"><strong>成本利润</strong><small>Cost &amp; Profit</small></span>
+      </a>
+
+      <nav class="desktop-nav" aria-label="主导航">
+        <button class="nav-tab is-active" data-view="calculator">计算器</button>
+        <button class="nav-tab" data-view="compare">方案对比</button>
+        <button class="nav-tab" data-view="sensitivity">利润敏感度</button>
+        <button class="nav-tab" data-view="history">历史记录</button>
+      </nav>
+
+      <div class="header-actions">
+        <button id="installBtn" class="icon-btn install-btn" hidden title="安装到桌面">安装</button>
+        <button id="themeBtn" class="icon-btn" title="切换深色/浅色" aria-label="切换主题">
+          <svg class="icon theme-icon theme-sun"><use href="#i-sun"></use></svg>
+          <svg class="icon theme-icon theme-moon"><use href="#i-moon"></use></svg>
+        </button>
+        <button id="saveBtn" class="primary-btn header-save" title="保存这次计算">
+          <svg class="icon"><use href="#i-save"></use></svg><span>保存</span>
+        </button>
+        <div class="menu-wrap">
+          <button id="menuBtn" class="icon-btn" title="更多" aria-label="更多" aria-expanded="false">
+            <svg class="icon"><use href="#i-menu"></use></svg>
+          </button>
+          <div id="menuPanel" class="menu-panel" hidden>
+            <button data-action="save"><svg class="icon"><use href="#i-save"></use></svg>保存记录</button>
+            <button data-action="share"><svg class="icon"><use href="#i-share"></use></svg>分享结果</button>
+            <button data-action="export"><svg class="icon"><use href="#i-download"></use></svg>导出数据</button>
+            <button data-action="import"><svg class="icon"><use href="#i-upload"></use></svg>导入数据</button>
+            <button data-action="export-csv"><svg class="icon"><use href="#i-download"></use></svg>导出历史 CSV</button>
+            <button data-action="install-help"><svg class="icon"><use href="#i-phone"></use></svg>添加到主屏幕</button>
+            <span class="menu-sep"></span>
+            <button data-action="reset"><svg class="icon"><use href="#i-reset"></use></svg>恢复示例</button>
+            <button data-action="clear-history" class="danger"><svg class="icon"><use href="#i-trash"></use></svg>清空历史</button>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <main class="app-main">
+      <section id="view-calculator" class="view is-active" aria-labelledby="calcTitle">
+        <div class="mobile-summary">
+          <div class="mobile-summary-main">
+            <span class="eyebrow">预计净利润</span>
+            <strong class="mobile-profit" data-bind="net">¥10,686.80</strong>
+          </div>
+          <div class="mobile-summary-meta">
+            <span><b data-bind="netMargin">30.10%</b> 净利率</span>
+            <span title="净利润 ÷ 实际成交单"><b data-bind="perDeal">¥10.69</b> 成交单净利</span>
+            <button id="mobileScenarioToggle" class="mobile-scenario" type="button" title="切换当前价 / 替换价" data-bind="scenarioLabel">当前价</button>
+          </div>
+          <span class="live-dot"><i></i>实时</span>
+        </div>
+
+        <div class="calculator-layout">
+          <div class="inputs-column">
+            <section class="panel basic-panel">
+              <div class="panel-heading">
+                <div class="heading-left">
+                  <span class="step-badge">01</span>
+                  <div><h1 id="calcTitle">基础数据</h1><p>改这里，结果会实时变化</p></div>
+                </div>
+                <span class="panel-note" id="autosaveStatus">自动保存</span>
+              </div>
+
+              <div class="field-grid two">
+                <label class="field">
+                  <span class="field-label">商品售价</span>
+                  <span class="input-shell"><span class="affix">¥</span><input id="price" data-field="price" type="number" inputmode="decimal" min="0" step="0.01" autocomplete="off"></span>
+                </label>
+                <label class="field">
+                  <span class="field-label">订单数</span>
+                  <span class="input-shell"><input id="orders" data-field="orders" type="number" inputmode="numeric" min="0" step="1" autocomplete="off"><span class="suffix">单</span></span>
+                </label>
+              </div>
+
+              <div class="rate-block">
+                <div class="rate-top">
+                  <label for="returnRate">退货率 <span class="muted">（占订单）</span></label>
+                  <span class="rate-number"><input id="returnRate" data-field="returnRate" type="number" inputmode="decimal" min="0" max="100" step="0.01" autocomplete="off"><span>%</span></span>
+                </div>
+                <input id="returnRange" class="range" type="range" min="0" max="100" step="0.01" aria-label="退货率滑杆">
+                <div class="rate-foot"><span>退货数 <b data-bind="returns">140</b> 个</span><span>实际成交 <b data-bind="completed">1,000</b> 单</span></div>
+              </div>
+
+              <div class="rate-block">
+                <div class="rate-top">
+                  <label for="refundRate">仅退款率 <span class="muted">（占退货）</span></label>
+                  <span class="rate-number"><input id="refundRate" data-field="refundRate" type="number" inputmode="decimal" min="0" max="100" step="0.01" autocomplete="off"><span>%</span></span>
+                </div>
+                <input id="refundRange" class="range" type="range" min="0" max="100" step="0.01" aria-label="仅退款率滑杆">
+                <div class="rate-foot"><span>仅退款 <b data-bind="refunds">10</b> 个</span><span>占订单 <b data-bind="refundOrderShare">0.88%</b></span></div>
+              </div>
+
+              <div class="override-row">
+                <div class="override-label">
+                  <span>仅退款实际数</span>
+                  <span id="refundMode" class="soft-tag">自动</span>
+                </div>
+                <div class="override-control">
+                  <span class="input-shell compact"><input id="refundOverride" data-field="refundOverride" type="number" inputmode="numeric" min="0" step="1" placeholder="自动" autocomplete="off"><span class="suffix">个</span></span>
+                  <button id="refundAutoBtn" class="ghost-btn" type="button">恢复自动</button>
+                </div>
+                <p class="micro" id="refundHint">自动算出 10 个；实际差一个时，填实际数量即可。</p>
+              </div>
+
+              <div id="formWarning" class="form-warning" hidden></div>
+            </section>
+
+            <section id="costPanel" class="panel flat-panel">
+              <div class="panel-heading">
+                <div class="heading-left">
+                  <span class="step-badge">02</span>
+                  <div><h2>配件成本</h2><p>可改名、可增删</p></div>
+                </div>
+                <div class="heading-actions">
+                  <span class="panel-note" id="costCount">11 项</span>
+                  <button id="addCostBtn" class="add-btn" type="button">＋ 添加配件</button>
+                </div>
+              </div>
+              <div class="scenario-bar">
+                <span>计算采用</span>
+                <div class="segmented" id="scenarioSwitch">
+                  <button type="button" data-scenario="current" class="is-active">当前价</button>
+                  <button type="button" data-scenario="replacement">替换价</button>
+                </div>
+                <span class="muted mini">替换价留空 = 沿用当前价</span>
+              </div>
+              <div class="cost-head"><span>配件</span><span>当前价</span><span>替换价</span><span></span></div>
+              <div id="costRows" class="cost-rows"></div>
+              <div class="shipping-row">
+                <span><strong>快递费</strong><small>成交单承担，不随配件数量变化</small></span>
+                <span class="input-shell compact"><span class="affix">¥</span><input id="shipping" data-field="shipping" type="number" inputmode="decimal" min="0" step="0.01" autocomplete="off"></span>
+              </div>
+              <div class="cost-total">
+                <div><span>货品成本（不含快递）</span><strong data-bind="goodsCost">¥20.42</strong></div>
+                <div><span title="货品成本 + 快递费">单件总成本</span><strong class="accent" data-bind="unitCost">¥22.37</strong></div>
+              </div>
+              <div class="cost-compare-line">
+                <span>当前价 <b data-bind="currentUnitCost">¥22.37</b></span>
+                <span>替换价 <b data-bind="replacementUnitCost">¥21.07</b></span>
+                <span>成本变化 <b data-bind="unitCostDiff">−¥1.30</b></span>
+              </div>
+            </section>
+
+            <section id="feePanel" class="panel flat-panel">
+              <div class="panel-heading">
+                <div class="heading-left">
+                  <span class="step-badge">03</span>
+                  <div><h2>额外费用</h2><p>可选基数，可增删</p></div>
+                </div>
+                <div class="heading-actions">
+                  <span class="panel-note" id="feeCount">5 项</span>
+                  <button id="addFeeBtn" class="add-btn" type="button">＋ 添加费用</button>
+                </div>
+              </div>
+              <div class="fee-head"><span>费用项目</span><span title="选择按成交单还是退货单计费">计费基数</span><span title="单价 × 计费数量 = 实际扣费">单均金额</span><span></span></div>
+              <div id="feeRows" class="fee-rows"></div>
+              <div class="fee-summary">
+                <div><span>扣费合计（不含仅退款损失）</span><strong data-bind="feeBaseTotal">¥2,289.00</strong></div>
+                <div><span>成交单费用</span><strong data-bind="dealFees">¥1,029.00</strong></div>
+                <div><span>退货及退款费用</span><strong data-bind="returnRefundFees">¥1,414.20</strong></div>
+                <div class="fee-split"><span>其中仅退款净损失</span><b data-bind="refundLoss">¥154.20</b></div>
+                <div class="fee-total"><span>费用总扣减（含仅退款损失）</span><strong data-bind="totalFees">¥2,443.20</strong></div>
+              </div>
+              <p class="micro">仅退款商品不退回，按「货品成本 − 退货快递费」计入净损失；退货快递费这一项会被用于冲减，删除后按 0 冲减。</p>
+            </section>
+
+            <section class="panel formula-panel">
+              <div class="panel-heading">
+                <div class="heading-left">
+                  <span class="step-badge">04</span>
+                  <div><h2>计算口径</h2><p>每个数字是怎么算出来的</p></div>
+                </div>
+              </div>
+              <div class="formula-list">
+                <div><span>退货数</span><code>订单数 × 退货率</code></div>
+                <div><span>仅退款数</span><code>退货数 × 仅退款率</code></div>
+                <div><span>实际成交单</span><code>订单数 − 退货数</code></div>
+                <div><span>货品及快递成本</span><code>实际成交单 × 单件总成本</code></div>
+                <div><span>仅退款净损失</span><code>仅退款数 ×（货品成本 − 退货快递费）</code></div>
+                <div><span>净利润</span><code>成交额 − 成本 − 成交单费用 − 退货及退款费用</code></div>
+                <div><span>成交单均净利</span><code>净利润 ÷ 实际成交单</code></div>
+                <div><span>含退货下单均摊</span><code>净利润 ÷ 订单数</code></div>
+                <div><span>保本售价</span><code>整批总成本 ÷ 实际成交单</code></div>
+              </div>
+              <div class="metric-help">
+                <p><b>成交单均净利</b>：每成交一单平均赚多少。</p>
+                <p><b>含退货下单均摊</b>：每下一个单平均赚多少，退货单也占分母。</p>
+                <p><b>保本售价</b>：利润为 0 时的售价，低于它就会亏损。</p>
+              </div>
+            </section>
+          </div>
+
+          <aside class="result-column">
+            <section class="result-hero">
+              <div class="hero-glow"></div>
+              <div class="hero-top">
+                <span class="hero-eyebrow"><span data-bind="scenarioLabel">当前价</span>方案 · 预计净利润</span>
+                <span class="hero-mobile-label">补充指标</span>
+                <div class="hero-top-actions">
+                  <button id="scenarioToggle" class="scenario-chip" type="button" title="切换当前价 / 替换价">当前价 ⇄</button>
+                  <span class="live-pill"><i></i>实时</span>
+                </div>
+              </div>
+              <div class="hero-value" data-bind="net">¥10,686.80</div>
+              <div class="hero-sub"><span data-bind="netMargin">30.10%</span> 净利率<span class="dot">·</span><span data-bind="scenarioLabel">当前价</span></div>
+              <div class="hero-metrics">
+                <div><span title="净利润 ÷ 实际成交单">成交单均净利</span><strong data-bind="perDeal">¥10.69</strong></div>
+                <div><span title="净利润 ÷ 全部订单数">含退货下单均摊</span><strong data-bind="perOrder">¥9.37</strong></div>
+                <div><span title="利润为 0 时的售价">保本售价</span><strong data-bind="breakEven">¥24.81</strong></div>
+              </div>
+              <div class="hero-chips">
+                <span>成交 <b data-bind="completed">1,000</b> 单</span>
+                <span>退货 <b data-bind="returns">140</b> 个</span>
+                <span>仅退款 <b data-bind="refunds">10</b> 个</span>
+              </div>
+              <p class="hero-caption">净利润已扣全部费用；成交单均按实际成交单，含退货均摊按全部订单。</p>
+            </section>
+
+            <section class="panel breakdown-panel">
+              <div class="panel-heading compact-heading"><div><h2>成交额去向</h2><p>每一元钱去了哪里</p></div><span class="panel-note"><b data-bind="netMargin">30.10%</b> 净利</span></div>
+              <div class="allocation-bar" id="allocationBar" role="img" aria-label="成交额去向占比"></div>
+              <div class="allocation-legend" id="allocationLegend"></div>
+              <div class="breakdown-list">
+                <div><span>成交额</span><b data-bind="revenue">¥35,500.00</b></div>
+                <div><span>货品及快递成本</span><b class="negative" data-bind="cogsNeg">−¥22,370.00</b></div>
+                <div><span>成交单费用（扣款+服务费）</span><b class="negative" data-bind="dealFeesNeg">−¥1,029.00</b></div>
+                <div><span>退货及退款费用</span><b class="negative" data-bind="returnRefundFeesNeg">−¥1,414.20</b></div>
+                <div class="breakdown-total"><span>净利润</span><b data-bind="net">¥10,686.80</b></div>
+              </div>
+              <div class="secondary-grid">
+                <div><span>整批总成本</span><b data-bind="totalCost">¥24,813.20</b></div>
+                <div><span title="净利润 ÷ 整批总成本">成本利润率</span><b data-bind="costMargin">43.07%</b></div>
+              </div>
+              <div class="result-actions">
+                <button id="shareBtn" class="secondary-btn" type="button"><svg class="icon"><use href="#i-share"></use></svg>分享摘要</button>
+                <button id="saveBtn2" class="primary-btn" type="button"><svg class="icon"><use href="#i-save"></use></svg>保存记录</button>
+              </div>
+            </section>
+
+            <section class="panel insight-panel">
+              <div class="panel-heading compact-heading"><div><h2>关键洞察</h2><p>比看总利润更快做判断</p></div></div>
+              <div class="insight-list" id="insightList"></div>
+            </section>
+          </aside>
+        </div>
+      </section>
+
+      <section id="view-compare" class="view" aria-labelledby="compareTitle">
+        <div class="page-heading">
+          <div><span class="eyebrow">成本方案</span><h1 id="compareTitle">当前价 vs 替换价</h1><p>同一批订单、同一退货率下，替换配件后利润变化多少。</p></div>
+          <button class="secondary-btn" data-view="calculator" type="button">回计算器</button>
+        </div>
+        <div class="compare-context" id="compareContext"></div>
+        <div class="compare-cards" id="compareCards"></div>
+        <div class="compare-reasons" id="compareReasons"></div>
+        <section class="panel table-panel">
+          <div class="panel-heading compact-heading"><div><h2>方案明细</h2><p>差额 = 替换价 − 当前价；绿色代表更有利，红色代表更不利</p></div></div>
+          <div class="table-wrap"><table class="data-table" id="compareTable"></table></div>
+        </section>
+        <section class="panel table-panel">
+          <div class="panel-heading compact-heading"><div><h2>不同订单量下多赚多少</h2><p>假设退货率、仅退款率和费用不变，只改变订单量</p></div></div>
+          <div class="table-wrap"><table class="data-table" id="volumeTable"></table></div>
+        </section>
+      </section>
+
+      <section id="view-sensitivity" class="view" aria-labelledby="sensTitle">
+        <div class="page-heading">
+          <div><span class="eyebrow">压力测试</span><h1 id="sensTitle">利润敏感度</h1><p>行 = 退货率，列 = 订单数；颜色越深利润越高，点击格子应用。</p></div>
+          <button class="secondary-btn" data-view="calculator" type="button">回计算器</button>
+        </div>
+        <div class="sens-meta" id="sensMeta"></div>
+        <div class="sens-guide" id="sensGuide"></div>
+        <section class="panel table-panel heatmap-panel">
+          <div class="table-wrap"><table class="heatmap" id="heatmap"></table></div>
+        </section>
+        <section class="panel target-panel">
+          <div class="panel-heading compact-heading"><div><h2>目标利润反推</h2><p>目标净利润 ÷ 成交单均净利 = 需要成交单；再按当前退货率折算订单。</p></div></div>
+          <div class="target-grid">
+            <label class="field"><span class="field-label">目标净利润</span><span class="input-shell"><span class="affix">¥</span><input id="targetProfit" type="number" inputmode="decimal" min="0" step="100" value="10000"></span></label>
+            <div class="target-result"><span>需要成交单<br><small>实际成交，不含退货</small></span><strong id="targetDeals">—</strong></div>
+            <div class="target-result"><span>需要订单数<br><small>含退货，按当前退货率折算</small></span><strong id="targetOrders">—</strong></div>
+          </div>
+          <div class="target-note" id="targetNote"></div>
+        </section>
+      </section>
+
+      <section id="view-history" class="view" aria-labelledby="historyTitle">
+        <div class="page-heading">
+          <div><span class="eyebrow">自动留档</span><h1 id="historyTitle">历史记录</h1><p>每次保存都会留下完整参数，随时恢复。</p></div>
+          <button id="historySaveBtn" class="primary-btn" type="button"><svg class="icon"><use href="#i-plus"></use></svg>保存当前记录</button>
+        </div>
+        <div class="history-toolbar">
+          <span id="historyCount" class="soft-tag">0 条记录</span>
+          <div class="toolbar-actions">
+            <button class="ghost-btn" data-action="export" type="button"><svg class="icon"><use href="#i-download"></use></svg>导出</button>
+            <button class="ghost-btn" data-action="import" type="button"><svg class="icon"><use href="#i-upload"></use></svg>导入</button>
+            <button class="ghost-btn danger-text" data-action="clear-history" type="button"><svg class="icon"><use href="#i-trash"></use></svg>清空</button>
+          </div>
+        </div>
+        <div class="history-search">
+          <svg class="icon"><use href="#i-search"></use></svg>
+          <input id="historySearch" type="search" placeholder="搜索记录名称或日期" autocomplete="off" aria-label="搜索历史记录">
+          <button id="historySearchClear" class="history-search-clear" type="button" hidden>清除</button>
+        </div>
+        <div id="historyList" class="history-list"></div>
+      </section>
+    </main>
+
+    <div id="stickyResult" class="sticky-result">
+      <div class="sticky-metrics">
+        <div><span>净利润</span><strong data-bind="net">¥10,686.80</strong></div>
+        <div><span title="净利润 ÷ 实际成交单">成交单均净利</span><strong data-bind="perDeal">¥10.69</strong></div>
+      </div>
+      <button id="detailBtn" class="sticky-btn" type="button">明细</button>
+    </div>
+
+    <nav class="mobile-nav" aria-label="移动端导航">
+      <button class="mobile-nav-item is-active" data-view="calculator"><svg class="icon"><use href="#i-calc"></use></svg><span>计算器</span></button>
+      <button class="mobile-nav-item" data-view="compare"><svg class="icon"><use href="#i-compare"></use></svg><span>方案</span></button>
+      <button class="mobile-nav-item" data-view="sensitivity"><svg class="icon"><use href="#i-chart"></use></svg><span>敏感度</span></button>
+      <button class="mobile-nav-item" data-view="history"><svg class="icon"><use href="#i-history"></use></svg><span>历史</span></button>
+    </nav>
+  </div>
+
+  <dialog id="saveDialog" class="dialog">
+    <form method="dialog" id="saveForm">
+      <div class="dialog-head"><div><span class="eyebrow">保存快照</span><h2>保存这次计算</h2></div><button class="icon-btn" value="cancel" aria-label="关闭" type="submit">×</button></div>
+      <p class="dialog-note">保存后可在「历史记录」里恢复全部参数。</p>
+      <label class="field"><span class="field-label">记录名称</span><span class="input-shell"><input id="recordName" type="text" maxlength="40" autocomplete="off" placeholder="例如：10 月第一周"></span></label>
+      <div class="dialog-summary" id="dialogSummary"></div>
+      <div class="dialog-actions"><button class="ghost-btn" value="cancel" type="submit">取消</button><button id="confirmSave" class="primary-btn" value="default" type="submit">保存</button></div>
+    </form>
+  </dialog>
+
+  <dialog id="installDialog" class="dialog install-dialog">
+    <div class="dialog-head"><div><span class="eyebrow">手机使用</span><h2>添加到主屏幕</h2></div><button class="icon-btn" data-close-install aria-label="关闭">×</button></div>
+    <div class="install-steps">
+      <p><strong>iPhone / Safari：</strong>点底部分享按钮 → 添加到主屏幕。</p>
+      <p><strong>Android / Chrome：</strong>点右上角菜单 → 添加到主屏幕 / 安装应用。</p>
+      <p class="muted">需要把网页放到一个网址上，才能像 App 一样从桌面打开；本地文件也能直接使用全部计算功能。</p>
+    </div>
+    <button class="primary-btn full" data-close-install type="button">知道了</button>
+  </dialog>
+
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+  <input id="importFile" type="file" accept="application/json,.json" hidden>
+
+  <script src="./calc.js"></script>
+  <script src="./app.js"></script>
+</body>
+</html>
+
+
+
+
